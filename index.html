@@ -61,6 +61,7 @@
 
   <!-- Hero -->
   <section class="relative overflow-hidden bg-white">
+    <div id="heroBg" class="absolute inset-0 -z-10"></div>
     <div class="absolute inset-0">
       <div class="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-slate-200 blur-3xl opacity-70"></div>
       <div class="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-slate-200 blur-3xl opacity-70"></div>
@@ -277,15 +278,7 @@
       </div>
 
       <div class="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <button class="project-card h-60 rounded-3xl bg-slate-200 border border-slate-300 overflow-hidden hover:opacity-95" data-title="Об’єкт 1" data-desc="Опис додамо пізніше.">
-          <div class="h-full w-full grid place-items-center text-slate-600 text-sm">Фото 1</div>
-        </button>
-        <button class="project-card h-60 rounded-3xl bg-slate-200 border border-slate-300 overflow-hidden hover:opacity-95" data-title="Об’єкт 2" data-desc="Опис додамо пізніше.">
-          <div class="h-full w-full grid place-items-center text-slate-600 text-sm">Фото 2</div>
-        </button>
-        <button class="project-card h-60 rounded-3xl bg-slate-200 border border-slate-300 overflow-hidden hover:opacity-95" data-title="Об’єкт 3" data-desc="Опис додамо пізніше.">
-          <div class="h-full w-full grid place-items-center text-slate-600 text-sm">Фото 3</div>
-        </button>
+        <div id="projectsGrid" class="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
       </div>
     </div>
   </section>
@@ -297,24 +290,7 @@
       <p class="mt-2 text-slate-600">Поки шаблони. Пізніше заміниш на реальні (скріни/текст + місто/район).</p>
 
       <div class="mt-10 grid lg:grid-cols-3 gap-6">
-        <div class="rounded-3xl border border-slate-200 p-7 bg-slate-50">
-          <div class="text-sm text-slate-500">★★★★★</div>
-          <div class="mt-2 font-bold">Все зробили акуратно</div>
-          <p class="mt-2 text-sm text-slate-600">“Пояснили по вузлах, не поспішали, здали чисто. Рекомендую.”</p>
-          <div class="mt-4 text-xs text-slate-500">Вінниця • приватний будинок</div>
-        </div>
-        <div class="rounded-3xl border border-slate-200 p-7 bg-slate-50">
-          <div class="text-sm text-slate-500">★★★★★</div>
-          <div class="mt-2 font-bold">Протікання прибрали</div>
-          <p class="mt-2 text-sm text-slate-600">“Знайшли причину, переробили проблемне місце. Після дощу — сухо.”</p>
-          <div class="mt-4 text-xs text-slate-500">Вінниця • ремонт покрівлі</div>
-        </div>
-        <div class="rounded-3xl border border-slate-200 p-7 bg-slate-50">
-          <div class="text-sm text-slate-500">★★★★★</div>
-          <div class="mt-2 font-bold">Чітко по кошторису</div>
-          <p class="mt-2 text-sm text-slate-600">“Без сюрпризів, все як домовлялись. Дякую.”</p>
-          <div class="mt-4 text-xs text-slate-500">Вінниця • реконструкція</div>
-        </div>
+        <div id="reviewsGrid" class="mt-10 grid lg:grid-cols-3 gap-6"></div>
       </div>
     </div>
   </section>
@@ -428,7 +404,7 @@
           <button id="modalClose" class="rounded-2xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">Закрити</button>
         </div>
         <div class="mt-4 h-56 rounded-2xl bg-slate-200 grid place-items-center text-slate-600 text-sm">
-          Фото додамо пізніше
+          <img id="modalImage" src="" alt="" class="h-full w-full object-cover" />
         </div>
       </div>
     </div>
@@ -469,6 +445,8 @@
       card.addEventListener("click", () => {
         modalTitle.textContent = card.dataset.title || "Об’єкт";
         modalDesc.textContent = card.dataset.desc || "";
+        const mi = document.getElementById("modalImage");
+        if (mi) { mi.src = card.dataset.image || ""; mi.alt = card.dataset.title || ""; }
         modal.classList.remove("hidden");
       });
     });
@@ -524,5 +502,63 @@
       });
     }
   </script>
+
+  <script>
+    async function fetchJson(path) {
+      const res = await fetch(path, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load " + path);
+      return await res.json();
+    }
+
+    (async () => {
+      try {
+        const hero = await fetchJson("/content/hero.json");
+        const heroBg = document.getElementById("heroBg");
+        if (heroBg && hero?.image) {
+          heroBg.innerHTML = `
+            <div class="absolute inset-0">
+              <img src="${hero.image}" alt="${hero.alt || ""}" class="h-full w-full object-cover opacity-20" />
+              <div class="absolute inset-0 bg-white/70"></div>
+            </div>
+          `;
+        }
+      } catch (e) {}
+    })();
+
+    (async () => {
+      try {
+        const data = await fetchJson("/content/projects.json");
+        const grid = document.getElementById("projectsGrid");
+        if (!grid) return;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        grid.innerHTML = items.map((it) => `
+          <button class="project-card h-60 rounded-3xl bg-slate-200 border border-slate-300 overflow-hidden hover:opacity-95"
+            data-title="${(it.title||"").replaceAll('"','&quot;')}"
+            data-desc="${(it.desc||"").replaceAll('"','&quot;')}"
+            data-image="${(it.image||"").replaceAll('"','&quot;')}">
+            <img src="${it.image || ""}" alt="${(it.title||"").replaceAll('"','&quot;')}" class="h-full w-full object-cover" />
+          </button>
+        `).join("");
+      } catch (e) {}
+    })();
+
+    (async () => {
+      try {
+        const data = await fetchJson("/content/reviews.json");
+        const grid = document.getElementById("reviewsGrid");
+        if (!grid) return;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        grid.innerHTML = items.map((it) => `
+          <div class="rounded-3xl border border-slate-200 p-7 bg-slate-50">
+            <div class="text-sm text-slate-500">★★★★★</div>
+            <div class="mt-2 font-bold">${it.title || ""}</div>
+            <p class="mt-2 text-sm text-slate-600">“${it.text || ""}”</p>
+            <div class="mt-4 text-xs text-slate-500">${it.meta || ""}</div>
+          </div>
+        `).join("");
+      } catch (e) {}
+    })();
+  </script>
+
 </body>
 </html>
